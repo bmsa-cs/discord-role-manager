@@ -14,6 +14,7 @@ from discord.ext.commands import Bot
 from discord.ext import commands
 from discord import Client
 from discord import Embed
+import discord.utils
 
 
 config = configparser.RawConfigParser()
@@ -42,17 +43,30 @@ async def is_it_a_listening_channel(ctx):
 @commands.check(is_it_a_listening_channel)
 async def give(ctx, role_id, usernames):
     """Given a role_id and a comma-separated list of users, assigns those users the role."""
-    guild = ctx.guild.id
     usernames = usernames.split(',')
+    role = discord.utils.get(ctx.guild.roles, id=int(role_id))
+    if role:
+        print(role)
+    else:
+        await ctx.send("Unable to find role!")
+        return
+
 
     #TODO: support mentions and/or nicknames?
     if len(usernames) > 0:
         for u in usernames: # For each user...
-            for m in ctx.guild.members: # For each member in the server...
-                 #BUG: This doesn't seem to be getting all users correctly.
-                if u == m.name: #If the username equals the member name...
-                    await m.add_roles(role_id)
-                    await ctx.send("Assigned role to {m.name}")
+            member = None
+            if '#' in u: # split the discriminator.
+                name, discriminator = u.split('#')
+                member = discord.utils.get(ctx.guild.members, name=name, discriminator=int(discriminator))
+            else:
+                name = u
+                # ctx.guild.fetch_members(limit=None)
+                member = discord.utils.get(ctx.guild.members, name=name)
+            if member:
+                print("Member found: {member}")
+                await member.add_roles(role)
+                await ctx.send("Assigned role to {member.name}#{member.discriminator}")
 
 
 @client.event
