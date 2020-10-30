@@ -29,7 +29,7 @@ client = Bot(command_prefix=bot_prefix)
 client.remove_command('help')
 
 async def is_it_a_listening_channel(ctx):
-    # Returns whether or not the bot should be listening to this channel.
+    """Returns whether or not the bot should be listening to this channel."""
     for c in listening_channels:
         if int(ctx.message.channel.id) == int(c):
             return True
@@ -56,17 +56,20 @@ async def give(ctx, role_id, usernames):
     if len(usernames) > 0:
         for u in usernames: # For each user...
             member = None
+            name = None
+            discriminator = None
             if '#' in u: # split the discriminator.
                 name, discriminator = u.split('#')
-                member = discord.utils.get(ctx.guild.members, name=name, discriminator=int(discriminator))
+                # member = discord.utils.get(ctx.guild.members, name=name, discriminator=int(discriminator))
             else:
                 name = u
-                # ctx.guild.fetch_members(limit=None)
-                member = discord.utils.get(ctx.guild.members, name=name)
-            if member:
-                print("Member found: {member}")
-                await member.add_roles(role)
-                await ctx.send("Assigned role to {member.name}#{member.discriminator}")
+                # BUG: discord.utils.get() isn't working? have to use loop below with fetch_members.
+                # member = discord.utils.get(ctx.guild.members, name=name)
+            async for m in ctx.guild.fetch_members(limit=None):
+                if m.name == name:
+                    print("Member found: {}".format(m.name))
+                    await m.add_roles(role)
+                    await ctx.send("Assigned role to {}#{}".format(m.name, m.discriminator))
 
 
 @client.event
